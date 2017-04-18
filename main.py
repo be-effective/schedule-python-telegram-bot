@@ -6,7 +6,7 @@ import logging
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
-from telegram.ext import Updater,MessageHandler, Filters, CommandHandler
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
 updater = Updater(token=const.token)
 dispatcher = updater.dispatcher
@@ -45,7 +45,6 @@ def users(bot, update):
 
 def start(bot, update):
     func.proof_of_exist(bot, update)
-    #print(update.message.chat_id) #debug
     bot.sendMessage(chat_id=update.message.chat_id, text = texts.hellos, reply_markup = func.first_menu())
 
 def hello(bot, update):
@@ -122,7 +121,16 @@ dispatcher.add_handler(CommandHandler('help', hello))
 echo_handler = MessageHandler(Filters.text, text)
 dispatcher.add_handler(echo_handler)
 
-updater.start_polling()
+updater.start_webhook(listen = '88.214.236.179',
+                      port = 8443,
+                      url_path = const.token,
+                      key = 'private.key',
+                      cert = 'cert.pem',
+                      webhook_url = "https://88.214.236.179:8443/"+const.token)
+
 updater.idle()
+
+# updater.start_polling()
+# updater.idle()
 
 #print(time.strftime('%Y-%m-%d %H:%M:%S'))
