@@ -4,6 +4,7 @@ import const
 import texts
 import datetime
 import telegram
+import time
 
 def first_menu():
     custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', 'Доп'],
@@ -150,6 +151,7 @@ def week(bot,update):
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=sche,
                         parse_mode=telegram.ParseMode.HTML)
+
 def more(bot, update):
     reply_markup = more_menu(str(update.message.chat_id))
     bot.sendMessage(chat_id=update.message.chat_id,text=texts.ty, reply_markup=reply_markup) # text=texts.ty,
@@ -197,6 +199,7 @@ def contact(bot, update):
 #Приколюхи для админа
 def admin_help(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text=texts.admin_help, reply_markup=more_menu(str(update.message.chat_id)))
+    father(update)
 
 def accsess_denied(bot, update):
     custom_keyboard = [['Контакты','Ссылки','Донат']]
@@ -214,24 +217,26 @@ def get_users_list(bot, update):
     cursor = to_table(sql)
     text = 'Id)   Telegram id    :    Name:   :   Last name:\n'
     if cursor:
-        text+='==================================\n' \
-              'Блок: (используйте "/add id")\n' \
-              '==================================\n'
+        text+='============================\n' \
+              'Блок: (use "/add id")\n' \
+              '============================\n'
         for row in cursor:
             text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
     sql="SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=1"
     cursor = to_table(sql)
     if cursor:
-        text+='==================================\n' \
-              'Одобренные: (используйте "/del id")\n' \
-              '==================================\n'
+        text+='============================\n' \
+              'Одобренные: (use "/del id")\n' \
+              '============================\n'
         for row in cursor:
             text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
     bot.sendMessage(chat_id=update.message.chat_id, text=text, reply_markup=first_menu())
+    father(update)
 
 def to_all(bot, update):
     tospl = update.message.text
     tospl = tospl.split(" ",-1)
+    father(update)
     if len(tospl)>=1:
         tospl.remove('/all')
         cursor = to_table("SELECT `telegram_id` FROM `users_for_raspisanie_bot` WHERE `status`=1")
@@ -243,6 +248,7 @@ def to_all(bot, update):
                 bot.sendMessage(chat_id=str(row[0]), text=text)
 
 def add_user(bot, update):
+    father(update)
     if if_admin(str(update.message.chat_id)):
         adder = update.message.text
         adder = adder.split(" ",-1)
@@ -265,7 +271,9 @@ def add_user(bot, update):
             if str(row).isdecimal():
                 bot.sendMessage(chat_id=int(row), text='Ваша заявка была одобрена!', reply_markup=first_menu())
 
+
 def del_user(bot, update):
+    father(update)
     if if_admin(str(update.message.chat_id)):
         adder = update.message.text
         adder = adder.split(" ",-1)
@@ -280,6 +288,7 @@ def del_user(bot, update):
             cnx.commit()
             cursor.close()
             cnx.close()
+
 
 def for_1(bot,update):
     if if_admin(str(update.message.chat_id)):
@@ -307,6 +316,7 @@ def for_1(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use1)
     else:
@@ -338,6 +348,7 @@ def for_2(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use2)
     else:
@@ -369,6 +380,7 @@ def for_3(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use3)
     else:
@@ -400,6 +412,7 @@ def for_4(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
     else:
@@ -436,6 +449,7 @@ def for_1_append(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
     else:
@@ -472,6 +486,7 @@ def for_2_append(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
     else:
@@ -508,6 +523,7 @@ def for_3_append(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update, row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
     else:
@@ -544,7 +560,13 @@ def for_4_append(bot,update):
             cursor.close()
             cnx.close()
             sometext(bot, update, row, 8)
+            father(update,row)
         else:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
     else:
         accsess_denied(bot,update)
+
+def father(update,txt=''):
+    f = open('text.txt', 'a')
+    f.write(str(time.strftime('%Y-%m-%d %H:%M:%S'))+' '+update.message.from_user.first_name+' '+update.message.from_user.last_name+' '+str(update.message.chat_id)+' '+update.message.text+' '+txt+'\n')
+    f.close()
