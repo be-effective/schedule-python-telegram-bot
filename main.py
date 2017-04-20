@@ -17,6 +17,12 @@ def add_user(bot, update):
 def del_user(bot, update):
     func.del_user(bot, update)
 
+def word(bot, update):
+    func.word(bot, update)
+
+def word_add(bot, update):
+    func.word_add(bot, update)
+
 def one(bot, update):
     func.for_1(bot, update)
 def two(bot, update):
@@ -73,7 +79,7 @@ def text(bot, update):
             func.week(bot, update)
         elif text == 'Доп':
             func.more(bot, update)
-        elif text == 'Админ':
+        elif text == 'Адм':
             func.admin_help(bot, update)
         elif text == 'Назад':
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.hellos, reply_markup=func.first_menu())
@@ -85,6 +91,10 @@ def text(bot, update):
             func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
+        elif text == texts.birth:
+            func.birth(bot, update)
+        elif text == texts.exam:
+            func.exam(bot, update)
         else:#тут проверка
             func.sometext(bot, update, text, 8)
     else:  # Если пользователь не найден или не активен
@@ -107,6 +117,8 @@ dispatcher.add_handler(CommandHandler('1_add', one_append))
 dispatcher.add_handler(CommandHandler('2_add', two_append))
 dispatcher.add_handler(CommandHandler('3_add', three_append))
 dispatcher.add_handler(CommandHandler('4_add', four_append))
+dispatcher.add_handler(CommandHandler('word', word))
+dispatcher.add_handler(CommandHandler('word_add', word_add))
 dispatcher.add_handler(CommandHandler('users', users))
 dispatcher.add_handler(CommandHandler('add', add_user))
 dispatcher.add_handler(CommandHandler('del', del_user))
@@ -121,16 +133,15 @@ dispatcher.add_handler(CommandHandler('help', hello))
 echo_handler = MessageHandler(Filters.text, text)
 dispatcher.add_handler(echo_handler)
 
-updater.start_webhook(listen = '88.214.236.179',
-                      port = 8443,
-                      url_path = const.token,
-                      key = 'private.key',
-                      cert = 'cert.pem',
-                      webhook_url = "https://88.214.236.179:8443/"+const.token)
-
-updater.idle()
-
-# updater.start_polling()
+# updater.start_webhook(listen = '88.214.236.179',
+#                       port = 8443,
+#                       url_path = const.token,
+#                       key = 'private.key',
+#                       cert = 'cert.pem',
+#                       webhook_url = "https://88.214.236.179:8443/"+const.token)
 # updater.idle()
+
+updater.start_polling()
+updater.idle()
 
 #print(time.strftime('%Y-%m-%d %H:%M:%S'))
