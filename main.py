@@ -3,13 +3,15 @@ import const
 import func
 import texts
 import logging
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+updater=Updater(token=const.token)
+dispatcher=updater.dispatcher
 
-updater = Updater(token=const.token)
-dispatcher = updater.dispatcher
+def editor(bot, update):
+    func.editor(bot, update)
 
 def add_user(bot, update):
     func.add_user(bot, update)
@@ -17,31 +19,7 @@ def add_user(bot, update):
 def del_user(bot, update):
     func.del_user(bot, update)
 
-def word(bot, update):
-    func.word(bot, update)
-
-def word_add(bot, update):
-    func.word_add(bot, update)
-
-def one(bot, update):
-    func.for_1(bot, update)
-def two(bot, update):
-    func.for_2(bot, update)
-def three(bot, update):
-    func.for_3(bot, update)
-def four(bot, update):
-    func.for_4(bot, update)
-
-def one_append(bot, update):
-    func.for_1_append(bot, update)
-def two_append(bot, update):
-    func.for_2_append(bot, update)
-def three_append(bot, update):
-    func.for_3_append(bot, update)
-def four_append(bot, update):
-    func.for_4_append(bot, update)
-
-def to_all(bot, update):
+def to_aller(bot, update):
     if func.if_admin(str(update.message.chat_id)):
         func.to_all(bot, update)
 
@@ -57,6 +35,7 @@ def hello(bot, update):
     update.message.reply_text('Hello {}'.format(update.message.from_user.first_name))
 
 def text(bot, update):
+    func.eye(update)
     text=update.message.text
     if func.proof_of_exist(bot, update): # Если пользователь найден и активен
         if text == 'Сегодня':
@@ -77,13 +56,13 @@ def text(bot, update):
             func.sometext(bot, update, '', 6)
         elif text == 'Неделя':
             func.week(bot, update)
-        elif text == 'Доп':
+        elif text == texts.alt:
             func.more(bot, update)
-        elif text == 'Адм':
+        elif text == texts.admin:
             func.admin_help(bot, update)
-        elif text == 'Назад':
+        elif text == texts.back:
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.hellos, reply_markup=func.first_menu())
-        elif text == 'Сменить':
+        elif text == texts.group:
             func.change_group(bot, update)
         elif text == 'Ссылки':
             func.link(bot, update)
@@ -109,20 +88,10 @@ def text(bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text='Ваш Telegram Id: '+str(update.message.chat_id)+ '. Отправьте это сообщение администратору.')
 
 # Обработка админ команд
-dispatcher.add_handler(CommandHandler('1', one))
-dispatcher.add_handler(CommandHandler('2', two))
-dispatcher.add_handler(CommandHandler('3', three))
-dispatcher.add_handler(CommandHandler('4', four))
-dispatcher.add_handler(CommandHandler('1_add', one_append))
-dispatcher.add_handler(CommandHandler('2_add', two_append))
-dispatcher.add_handler(CommandHandler('3_add', three_append))
-dispatcher.add_handler(CommandHandler('4_add', four_append))
-dispatcher.add_handler(CommandHandler('word', word))
-dispatcher.add_handler(CommandHandler('word_add', word_add))
+dispatcher.add_handler(CommandHandler('all', to_aller))
 dispatcher.add_handler(CommandHandler('users', users))
 dispatcher.add_handler(CommandHandler('add', add_user))
 dispatcher.add_handler(CommandHandler('del', del_user))
-dispatcher.add_handler(CommandHandler('all', to_all))
 
 # Обработка общих команд
 dispatcher.add_handler(CommandHandler('start', start))
@@ -130,18 +99,20 @@ dispatcher.add_handler(CommandHandler('setting', hello))
 dispatcher.add_handler(CommandHandler('help', hello))
 
 # Обработка текстовых сообщений
-echo_handler = MessageHandler(Filters.text, text)
-dispatcher.add_handler(echo_handler)
+dispatcher.add_handler(MessageHandler(Filters.text, text))
 
-# updater.start_webhook(listen = '88.214.236.179',
-#                       port = 8443,
-#                       url_path = const.token,
-#                       key = 'private.key',
-#                       cert = 'cert.pem',
-#                       webhook_url = "https://88.214.236.179:8443/"+const.token)
-# updater.idle()
+# Обработка специальных комманд
+dispatcher.add_handler(MessageHandler(Filters.command, editor))
 
-updater.start_polling()
+updater.start_webhook(listen = '88.214.236.179',
+                      port = 8443,
+                      url_path = const.token,
+                      key = 'private.key',
+                      cert = 'cert.pem',
+                      webhook_url = "https://88.214.236.179:8443/"+const.token)
 updater.idle()
+
+# updater.start_polling()
+# updater.idle()
 
 #print(time.strftime('%Y-%m-%d %H:%M:%S'))

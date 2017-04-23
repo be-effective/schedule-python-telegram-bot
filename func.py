@@ -7,16 +7,16 @@ import telegram
 import time
 
 def first_menu():
-    custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', 'Доп'],
+    custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', texts.alt],
                        ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']]
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard, True)
     return reply_markup
 
 def more_menu(text):
-    custom_keyboard = [['Назад',texts.birth, texts.exam, 'Сменить'],
+    custom_keyboard = [[texts.back,texts.birth, texts.exam, texts.group],
                        ['Ссылки', 'Контакты', 'Донат']]
     if if_admin(text):
-        custom_keyboard[0].insert(1,'Адм')
+        custom_keyboard[1].insert(1, texts.admin)
     return telegram.ReplyKeyboardMarkup(custom_keyboard, True)
 
 def to_table(sql):
@@ -131,7 +131,7 @@ def sometext(bot, update, text, flag):
                 messag += '<b>А также:</b> \n' + word
             if if_admin(str(update.message.chat_id)):
                 messag+=' '+'/word or /word_add'
-        bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML)
+        bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=first_menu())
 
 def week(bot,update):
     now_date = datetime.date.today()
@@ -238,7 +238,7 @@ def exam(bot, update):
     if cursor:
         births = '<b>Зачеты, экзамены, курсовые:</b>\n'
         for row in cursor:
-            if (row[1].find(' экз ') != -1) or (row[1].find(' зач ') != -1) or (row[1].find(' кур ') != -1):
+            if (row[1].find('экз ') != -1) or (row[1].find('зач ') != -1) or (row[1].find('кур ') != -1):
                 births += "<b>"+row[0]+"</b> "+"<i>"+row[1]+"</i>\n"
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=births,
@@ -268,7 +268,6 @@ def get_users_list(bot, update):
 def to_all(bot, update):
     tospl = update.message.text
     tospl = tospl.split(" ",-1)
-    father(update)
     if len(tospl)>=1:
         tospl.remove('/all')
         cursor = to_table("SELECT `telegram_id` FROM `users_for_raspisanie_bot` WHERE `status`=1")
@@ -277,7 +276,10 @@ def to_all(bot, update):
             for item in tospl:
                 text+=item+" "
             for row in cursor:
-                bot.sendMessage(chat_id=str(row[0]), text=text)
+                ids=int(row[0])
+                print(ids)
+                bot.sendMessage(chat_id=ids,text=text)
+
 
 def add_user(bot, update):
     father(update)
@@ -321,353 +323,69 @@ def del_user(bot, update):
             cursor.close()
             cnx.close()
 
-
-def for_1(bot,update):
+def editor(bot,update):
     if if_admin(str(update.message.chat_id)):
         sche = update.message.text
         sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/1':
-            sche.remove("/1")
-            ready_sche = ''
-            cur = to_table(
-                "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `first`='"+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use1)
+        command = update.message.text
+        commander = command
+        commander = commander.split(' ', 1)[0]
+        commands = ['/1','/2','/3','/4','/1_add','/2_add','/3_add','/4_add','/word','/word_add']
+        commands_add = ['/1_add','/2_add','/3_add','/4_add','/word_add']
+        if  commander in commands:
+            if len(sche)>=2 and sche[0]==commander:
+                sche.remove(commander)
+                ready_sche = ''
+                cur = to_table(
+                    "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
+                row = ''
+                if cur:
+                    for ind in cur:
+                        row = ind[0]
+                for item in sche:
+                    ready_sche += item + " "
+                pre_sche = ''
+                para=""
+                if commander == "/1" or commander == "/1_add":
+                    para = "first"
+                if commander == "/2" or commander == "/2_add":
+                    para = "second"
+                if commander == "/3" or commander == "/3_add":
+                    para = "third"
+                if commander == "/4" or commander == "/4_add":
+                    para = "fourth"
+                if commander == "/word" or commander == "/word_add":
+                    para = "adword"
+                if commander in commands_add:
+                    cur = to_table("SELECT `"+para+"` FROM `bakirov_db0`.`sche` WHERE `data`='" + row + "'")
+                    if cur:
+                        for ind in cur:
+                            pre_sche = ind[0]
+                        pre_sche+=" "
+                sql = "UPDATE `bakirov_db0`.`sche` SET `"+para+"`='"+pre_sche+ready_sche+"' WHERE `data`='"+row+"'"
+                cnx = mysql.connector.connect(user=const.dbuser,
+                                              password=const.dbpwd,
+                                              host=const.dbhost,
+                                              database=const.dbname)
+                cursor = cnx.cursor()
+                cursor.execute(sql)
+                cnx.commit()
+                cursor.close()
+                cnx.close()
+                sometext(bot, update, row, 8)
+                father(update, row)
+            else:
+                bot.sendMessage(chat_id=update.message.chat_id, text=texts.use)
     else:
         accsess_denied(bot,update)
 
-def for_2(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/2':
-            sche.remove("/2")
-            ready_sche = ''
-            cur = to_table(
-                "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `second`='"+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use2)
-    else:
-        accsess_denied(bot,update)
-
-def for_3(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/3':
-            sche.remove("/3")
-            ready_sche = ''
-            cur = to_table(
-                "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `third`='"+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use3)
-    else:
-        accsess_denied(bot,update)
-
-def for_4(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/4':
-            sche.remove("/4")
-            ready_sche = ''
-            cur = to_table(
-                "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `fourth`='"+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
-    else:
-        accsess_denied(bot,update)
-
-def for_1_append(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/1_add':
-            sche.remove("/1_add")
-            ready_sche = ''
-            cur = to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" +
-                           str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            pre_sche = ''
-            cur = to_table("SELECT `first` FROM `bakirov_db0`.`sche` WHERE `data`='"+row+"'")
-            if cur:
-                for ind in cur:
-                    pre_sche = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `first`='"+pre_sche+" "+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
-    else:
-        accsess_denied(bot,update)
-
-def for_2_append(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/2_add':
-            sche.remove("/2_add")
-            ready_sche = ''
-            cur = to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" +
-                           str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            pre_sche = ''
-            cur = to_table("SELECT `second` FROM `bakirov_db0`.`sche` WHERE `data`='"+row+"'")
-            if cur:
-                for ind in cur:
-                    pre_sche = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `second`='"+pre_sche+" "+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
-    else:
-        accsess_denied(bot,update)
-
-def for_3_append(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/3_add':
-            sche.remove("/3_add")
-            ready_sche = ''
-            cur = to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" +
-                           str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            pre_sche = ''
-            cur = to_table("SELECT `third` FROM `bakirov_db0`.`sche` WHERE `data`='"+row+"'")
-            if cur:
-                for ind in cur:
-                    pre_sche = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `third`='"+pre_sche+" "+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
-    else:
-        accsess_denied(bot,update)
-
-def for_4_append(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/4_add':
-            sche.remove("/4_add")
-            ready_sche = ''
-            cur = to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" +
-                           str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            pre_sche = ''
-            cur = to_table("SELECT `fourth` FROM `bakirov_db0`.`sche` WHERE `data`='"+row+"'")
-            if cur:
-                for ind in cur:
-                    pre_sche = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `fourth`='"+pre_sche+" "+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update,row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.use4)
-    else:
-        accsess_denied(bot,update)
 
 def father(update,txt=''):
-    f = open('text.txt', 'a')
+    f = open('manager.txt', 'a')
     f.write(str(time.strftime('%Y-%m-%d %H:%M:%S'))+' '+update.message.from_user.first_name+' '+update.message.from_user.last_name+' '+str(update.message.chat_id)+' '+update.message.text+' '+txt+'\n')
     f.close()
 
-def word(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/word':
-            sche.remove("/word")
-            ready_sche = ' '
-            cur = to_table(
-                "SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" + str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `adword`='"+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.useword)
-    else:
-        accsess_denied(bot,update)
-
-def word_add(bot,update):
-    if if_admin(str(update.message.chat_id)):
-        sche = update.message.text
-        sche = sche.split(" ", -1)
-        if len(sche)>=2 and sche[0]=='/word_add':
-            sche.remove("/word_add")
-            ready_sche = ' '
-            cur = to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`='" +
-                           str(update.message.chat_id) + "'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            pre_sche = ''
-            cur = to_table("SELECT `adword` FROM `bakirov_db0`.`sche` WHERE `data`='"+row+"'")
-            if cur:
-                for ind in cur:
-                    pre_sche = ind[0]
-            for item in sche:
-                ready_sche += item + " "
-            sql = "UPDATE `bakirov_db0`.`sche` SET `adword`='"+pre_sche+" "+ready_sche+"' WHERE `data`='"+row+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            sometext(bot, update, row, 8)
-            father(update, row)
-        else:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.useword)
-    else:
-        accsess_denied(bot,update)
+def eye(update):
+    f = open('users.txt', 'a')
+    f.write(str(time.strftime('%Y-%m-%d %H:%M:%S'))+' '+update.message.from_user.first_name+' '+update.message.from_user.last_name+' '+str(update.message.chat_id)+' '+update.message.text+'\n')
+    f.close()
