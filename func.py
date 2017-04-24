@@ -196,13 +196,13 @@ def change_group(bot, update):
     bot.sendMessage(chat_id=update.message.chat_id, text=texts.change)
 
 def donate(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate)
+    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate, reply_markup=more_menu())
 
 def link(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link)
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link, reply_markup=more_menu())
 
 def contact(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.contact)
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.contact, reply_markup=more_menu())
 
 #Приколюхи для админа
 def admin_help(bot, update):

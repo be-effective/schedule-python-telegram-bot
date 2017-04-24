@@ -13,6 +13,12 @@ dispatcher=updater.dispatcher
 def editor(bot, update):
     func.editor(bot, update)
 
+def settings(bot, update):
+    3
+
+def info(bot, update):
+    3
+
 def add_user(bot, update):
     func.add_user(bot, update)
 
@@ -95,8 +101,8 @@ dispatcher.add_handler(CommandHandler('del', del_user))
 
 # Обработка общих команд
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('setting', hello))
-dispatcher.add_handler(CommandHandler('help', hello))
+dispatcher.add_handler(CommandHandler('settings', settings))
+dispatcher.add_handler(CommandHandler('help', info))
 
 # Обработка текстовых сообщений
 dispatcher.add_handler(MessageHandler(Filters.text, text))
