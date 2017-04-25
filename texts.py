@@ -11,6 +11,9 @@ alt = 'Ещё 🐾'
 back = '🔙'
 group = '👬↔️👬'
 admin = 'Root'
+duty = 'CoD 🎖'
+menu_liks = 'Link'
+menu_ask = 'Ask'
 
 hellos = 'Век живи, век учись!'
 

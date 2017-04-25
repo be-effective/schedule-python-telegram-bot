@@ -2,8 +2,9 @@
 import const
 import func
 import texts
-import logging
-from telegram.ext import Updater, MessageHandler, Filters, CommandHandler
+import logging , datetime, telegram
+from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
@@ -70,9 +71,9 @@ def text(bot, update):
             bot.sendMessage(chat_id=update.message.chat_id, text=texts.hellos, reply_markup=func.first_menu())
         elif text == texts.group:
             func.change_group(bot, update)
-        elif text == 'Ссылки':
+        elif text == texts.menu_liks:
             func.link(bot, update)
-        elif text == 'Контакты':
+        elif text == texts.menu_ask:
             func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
@@ -80,18 +81,37 @@ def text(bot, update):
             func.birth(bot, update)
         elif text == texts.exam:
             func.exam(bot, update)
+        elif text == texts.duty:
+            func.duty(bot, update)
         else:#тут проверка
             func.sometext(bot, update, text, 8)
     else:  # Если пользователь не найден или не активен
-        if text == 'Cсылки':
+        if text == texts.menu_liks:
             func.link(bot, update)
-        elif text == 'Контакты':
+        elif text == texts.menu_ask:
             func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
         else:
             func.accsess_denied(bot, update)
         bot.sendMessage(chat_id=update.message.chat_id, text='Ваш Telegram Id: '+str(update.message.chat_id)+ '. Отправьте это сообщение администратору.')
+
+def button(bot, update):
+    query = update.callback_query
+    cur = func.to_table("SELECT `data` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `telegram_id`=" + str(query.message.chat_id))
+    row = ''
+    if cur:
+        for ind in cur:
+            row = ind[0]
+    data = datetime.date(2017, int(row.split('.', 1)[1]), int(row.split('.', 1)[0]))
+    new_date = ''
+    if int(query.data) == 1:
+        new_date = data + datetime.timedelta(days=-1)
+    elif int(query.data) == 2:
+        new_date = data + datetime.timedelta(days=1)
+    new_date = str(new_date.day) + "." + str(new_date.month)
+    bot.editMessageText(text=func.sometext(bot, update, new_date, 9),chat_id=query.message.chat_id,message_id=query.message.message_id, reply_markup=func.switch(), parse_mode = telegram.ParseMode.HTML)
+
 
 # Обработка админ команд
 dispatcher.add_handler(CommandHandler('all', to_aller))
@@ -109,6 +129,9 @@ dispatcher.add_handler(MessageHandler(Filters.text, text))
 
 # Обработка специальных комманд
 dispatcher.add_handler(MessageHandler(Filters.command, editor))
+
+# Обработка кнопок
+updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
 updater.start_webhook(listen = '88.214.236.179',
                       port = 8443,

@@ -5,16 +5,24 @@ import texts
 import datetime
 import telegram
 import time
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+def switch():
+    keyboard = [[InlineKeyboardButton("⬅️     ", callback_data='1'),InlineKeyboardButton("     ➡️", callback_data='2')]]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    return reply_markup
 
 def first_menu():
+
     custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', texts.alt],
                        ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']]
     reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard, True)
     return reply_markup
 
 def more_menu(text):
-    custom_keyboard = [[texts.back,texts.birth, texts.exam, texts.group],
-                       ['Ссылки', 'Контакты', 'Донат']]
+    custom_keyboard = [[texts.back,texts.birth, texts.exam, texts.duty],
+                       [texts.menu_liks, texts.menu_ask, 'Донат',texts.group]]
     if if_admin(text):
         custom_keyboard[1].insert(1, texts.admin)
     return telegram.ReplyKeyboardMarkup(custom_keyboard, True)
@@ -75,7 +83,7 @@ def sometext(bot, update, text, flag):
         sql = "SELECT * FROM `sche` WHERE `data`='" + get_next_day_month(step) + "';"
     if flag == 7:
         sql = "SELECT * FROM `sche` WHERE `data`='" + get_next_day_month(1) + "';"
-    if flag == 8:
+    elif flag == 8 or flag == 9:
         sql = "SELECT * FROM `sche` WHERE `data`='" + text + "';"
     cursor = to_table(sql)
     if cursor:
@@ -88,12 +96,12 @@ def sometext(bot, update, text, flag):
             third = row[4]
             fourth = row[5]
             word = row[6]
-            if flag==0:
+            if flag == 0:
                 now_date = datetime.date.today()
                 messag += 'Сегодня (до отпуска <b>'+str(213-int(now_date.strftime("%j")))+'</b>)\n' #'('+str(id_in_db)+' до отпуска)',
             if flag == 7:
                 messag += 'Завтра \n'
-            if flag == 8:
+            if flag == 8 or flag == 9:
                 now_date = datetime.date.today()
                 number_of_day = int(now_date.strftime("%j"))
                 preload = ''
@@ -106,17 +114,26 @@ def sometext(bot, update, text, flag):
                 messag += 'По вашему запросу:\n' \
                           '{}'.format(preload)
             on = tw = th = fo = ''
-            if if_admin(str(update.message.chat_id)):
-                sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `data`='"+data+"' WHERE `telegram_id`="+str(update.message.chat_id)
-                cnx = mysql.connector.connect(user=const.dbuser,
-                                              password=const.dbpwd,
-                                              host=const.dbhost,
-                                              database=const.dbname)
-                cursor = cnx.cursor()
-                cursor.execute(sql)
-                cnx.commit()
-                cursor.close()
-                cnx.close()
+            sql = ''
+            if flag == 9:
+                sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `data`='" + data + "' WHERE `telegram_id`=" + str(update.callback_query.message.chat_id)
+            else:
+                sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `data`='" + data + "' WHERE `telegram_id`=" + str(update.message.chat_id)
+            cnx = mysql.connector.connect(user=const.dbuser,
+                                          password=const.dbpwd,
+                                          host=const.dbhost,
+                                          database=const.dbname)
+            cursor = cnx.cursor()
+            cursor.execute(sql)
+            cnx.commit()
+            cursor.close()
+            cnx.close()
+            prof = ''
+            if flag == 9:
+                prof = update.callback_query.message.chat_id
+            else:
+                prof = update.message.chat_id
+            if if_admin(str(prof)):
                 on = ' /1 or /1_add'
                 tw = ' /2 or /2_add'
                 th = ' /3 or /3_add'
@@ -129,9 +146,11 @@ def sometext(bot, update, text, flag):
                     '<i>4) </i> {}{}\n'.format(dayofweek(id_in_db),data,id_in_db,first,on,second,tw,third,th,fourth,fo)
             if word:
                 messag += '<b>А также:</b> \n' + word
-            if if_admin(str(update.message.chat_id)):
+            if if_admin(str(prof)):
                 messag+=' '+'/word or /word_add'
-        bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=first_menu())
+            if flag == 9:
+                return messag
+        bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=switch())
 
 def week(bot,update):
     now_date = datetime.date.today()
@@ -193,16 +212,54 @@ def proof_of_exist(bot, update):
         return 0
 
 def change_group(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.change)
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.change, reply_markup=more_menu(str(update.message.chat_id)))
 
 def donate(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate, reply_markup=more_menu())
+    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate, reply_markup=more_menu(str(update.message.chat_id)))
 
 def link(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link, reply_markup=more_menu())
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link, reply_markup=more_menu(str(update.message.chat_id)))
 
 def contact(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.contact, reply_markup=more_menu())
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.contact, reply_markup=more_menu(str(update.message.chat_id)))
+
+
+def duty(bot, update):
+    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    cursor = to_table(sql)
+    if cursor:
+        births = '<b>Список нарядов:</b>\n'
+        for row in cursor:
+            if (row[1].find('на ') != -1):
+                births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=births,
+                        parse_mode=telegram.ParseMode.HTML)
+
+def birth(bot, update):
+    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    cursor = to_table(sql)
+    if cursor:
+        births = '<b>Дни рождения! Поздравляем!</b>\n'
+        for row in cursor:
+            if row[1].find('др') != -1:
+                births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=births,
+                        parse_mode=telegram.ParseMode.HTML)
+
+
+def exam(bot, update):
+    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    cursor = to_table(sql)
+    if cursor:
+        births = '<b>Зачеты, экзамены, курсовые:</b>\n'
+        for row in cursor:
+            if (row[1].find('экз ') != -1) or (row[1].find('зач ') != -1) or (row[1].find('кур ') != -1):
+                births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text=births,
+                        parse_mode=telegram.ParseMode.HTML)
 
 #Приколюхи для админа
 def admin_help(bot, update):
@@ -219,30 +276,6 @@ def if_admin(from_user_telegram_id):
         return True
     else:
         return False
-
-def birth(bot, update):
-    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
-    cursor = to_table(sql)
-    if cursor:
-        births = '<b>Дни рождения! Поздравляем!</b>\n'
-        for row in cursor:
-            if row[1].find('др') != -1:
-                births += "<b>"+row[0]+"</b> "+"<i>"+row[1]+"</i>\n"
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text=births,
-                        parse_mode=telegram.ParseMode.HTML)
-
-def exam(bot, update):
-    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
-    cursor = to_table(sql)
-    if cursor:
-        births = '<b>Зачеты, экзамены, курсовые:</b>\n'
-        for row in cursor:
-            if (row[1].find('экз ') != -1) or (row[1].find('зач ') != -1) or (row[1].find('кур ') != -1):
-                births += "<b>"+row[0]+"</b> "+"<i>"+row[1]+"</i>\n"
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text=births,
-                        parse_mode=telegram.ParseMode.HTML)
 
 def get_users_list(bot, update):
     sql="SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=0"
@@ -277,7 +310,6 @@ def to_all(bot, update):
                 text+=item+" "
             for row in cursor:
                 ids=int(row[0])
-                print(ids)
                 bot.sendMessage(chat_id=ids,text=text)
 
 
