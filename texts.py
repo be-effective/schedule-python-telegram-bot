@@ -17,6 +17,8 @@ menu_ask = 'Ask'
 
 hellos = 'Век живи, век учись!'
 
+main_domain_stat = 'http://realmeteo.ru/spb/1/current' #http://www.gismeteo.ru
+
 disable = 'Доступ закрыт. Обратитесь к администратору.'
 
 admin_help='Нажмите /users для получения списка всех пользователей.\n' \

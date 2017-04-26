@@ -5,6 +5,8 @@ import texts
 import logging , datetime, telegram
 from telegram.ext import Updater, MessageHandler, Filters, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+import lxml.html as html
+from pandas import DataFrame
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
@@ -42,6 +44,12 @@ def hello(bot, update):
     update.message.reply_text('Hello {}'.format(update.message.from_user.first_name))
 
 def text(bot, update):
+    # page = html.parse('%s/events/index/date/desc/1/all' % (texts.main_domain_stat))
+    # e = page.getroot(). \
+    #     find_class('meteodata'). \
+    #     pop()
+    # t = e.getchildren().pop()
+    # print(t.text_content())
     func.eye(update)
     text=update.message.text
     if func.proof_of_exist(bot, update): # Если пользователь найден и активен
@@ -144,14 +152,14 @@ dispatcher.add_handler(MessageHandler(Filters.command, editor))
 updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
 # #Вебхуки
-updater.start_webhook(listen = const.ip,
-                      port = const.port,
-                      url_path = const.token,
-                      key = 'private.key',
-                      cert = 'cert.pem',
-                      webhook_url = "https://"+const.ip+":"+str(const.port)+"/"+const.token)
-updater.idle()
+# updater.start_webhook(listen = const.ip,
+#                       port = const.port,
+#                       url_path = const.token,
+#                       key = 'private.key',
+#                       cert = 'cert.pem',
+#                       webhook_url = "https://"+const.ip+":"+str(const.port)+"/"+const.token)
+# updater.idle()
 
 #Не вебхуки
-# updater.start_polling()
-# updater.idle()
+updater.start_polling()
+updater.idle()

@@ -343,16 +343,20 @@ def get_users_list(bot, update):
         text+='============================\n' \
               'Блок: (use "/add id")\n' \
               '============================\n'
+        k = 1
         for row in cursor:
-            text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
+            text+= str(k)+') /add'+str(row[0])+' '+str(row[1])+' '+ str(row[2])+' '+str(row[3])+'\n'
+            k += 1
     sql="SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=1"
     cursor = to_table(sql)
     if cursor:
         text+='============================\n' \
               'Одобренные: (use "/del id")\n' \
               '============================\n'
+        k = 1
         for row in cursor:
-            text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
+            text += str(k)+') /del'+str(row[0])+' '+str(row[1])+' '+str(row[2])+' '+str(row[3])+'\n'
+            k += 1
     bot.sendMessage(chat_id=update.message.chat_id, text=text, reply_markup=first_menu())
     father(update)
 
