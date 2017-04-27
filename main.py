@@ -83,10 +83,6 @@ def text(bot, update):
             func.exam(bot, update)
         elif text == texts.duty:
             func.duty(bot, update)
-        elif text == '641/1':
-            func.update_group(bot, update, 1)
-        elif text == '641/2':
-            func.update_group(bot, update, 2)
         else:#тут проверка
             func.sometext(bot, update, text, 8)
     else:  # Если пользователь не найден или не активен
@@ -96,12 +92,6 @@ def text(bot, update):
             func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
-        elif text == texts.group:
-            func.change_group(bot, update)
-        elif text == '641/1':
-            func.update_group(bot, update, 1)
-        elif text == '641/2':
-            func.update_group(bot, update, 2)
         else:
             func.accsess_denied(bot, update)
         bot.sendMessage(chat_id=update.message.chat_id, text='Ваш Telegram Id: '+str(update.message.chat_id)+ '. Отправьте это сообщение администратору.')
@@ -120,7 +110,7 @@ def button(bot, update):
     elif int(query.data) == 2:
         new_date = data + datetime.timedelta(days=1)
     new_date = str(new_date.day) + "." + str(new_date.month)
-    bot.editMessageText(text=func.sometext(bot, update, new_date, 9), chat_id = query.message.chat_id, message_id = query.message.message_id, reply_markup=func.switch(), parse_mode = telegram.ParseMode.HTML)
+    bot.editMessageText(text=func.sometext(bot, update, new_date, 9),chat_id=query.message.chat_id,message_id=query.message.message_id, reply_markup=func.switch(), parse_mode = telegram.ParseMode.HTML)
 
 
 # Обработка админ команд
@@ -143,15 +133,15 @@ dispatcher.add_handler(MessageHandler(Filters.command, editor))
 # Обработка кнопок
 updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
-# #Вебхуки
-updater.start_webhook(listen = const.ip,
-                      port = const.port,
+updater.start_webhook(listen = '88.214.236.179',
+                      port = 8443,
                       url_path = const.token,
                       key = 'private.key',
                       cert = 'cert.pem',
-                      webhook_url = "https://"+const.ip+":"+str(const.port)+"/"+const.token)
+                      webhook_url = "https://88.214.236.179:8443/"+const.token)
 updater.idle()
 
-#Не вебхуки
 # updater.start_polling()
 # updater.idle()
+
+#print(time.strftime('%Y-%m-%d %H:%M:%S'))

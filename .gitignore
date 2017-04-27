@@ -91,5 +91,3 @@ const.py
 *.xml
 *.iml
 text.txt
-manager.txt
-users.txt
