@@ -15,6 +15,8 @@ duty = 'CoD 🎖'
 menu_liks = 'Link'
 menu_ask = 'Ask'
 
+table_notes = 'telegram_nodes'
+
 hellos = 'Век живи, век учись!'
 
 disable = 'Доступ закрыт. Обратитесь к администратору.'
