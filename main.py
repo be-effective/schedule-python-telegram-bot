@@ -12,7 +12,18 @@ updater=Updater(token=const.token)
 dispatcher=updater.dispatcher
 
 def editor(bot, update):
-    func.editor(bot, update)
+    id = 0
+    try:
+        id = update.message.chat_id
+    except AttributeError:
+        id = update.callback_query.message.chat_id
+    text = update.message.text
+    first = text[0:2]
+    second = text[2:len(text)]
+    if first == '/d' and second.isdecimal():
+        func.delnote(bot,update,id,second)
+    else:
+        func.editor(bot, update)
 
 def settings(bot, update):
     3
@@ -36,7 +47,7 @@ def users(bot, update):
 
 def start(bot, update):
     func.proof_of_exist(bot, update)
-    bot.sendMessage(chat_id=update.message.chat_id, text = texts.hellos, reply_markup = func.first_menu())
+    bot.sendMessage(chat_id=update.message.chat_id, text = texts.hellos, reply_markup = func.page1())
 
 def hello(bot, update):
     update.message.reply_text('Hello {}'.format(update.message.from_user.first_name))
@@ -63,18 +74,18 @@ def text(bot, update):
             func.sometext(bot, update, '', 6)
         elif text == 'Неделя':
             func.week(bot, update)
-        elif text == texts.alt:
-            func.more(bot, update)
-        elif text == texts.admin:
-            func.admin_help(bot, update)
-        elif text == texts.back:
-            bot.sendMessage(chat_id=update.message.chat_id, text=texts.hellos, reply_markup=func.first_menu())
+        elif text == texts.topage2from1:
+            bot.sendMessage(chat_id=update.message.chat_id, text=texts.topage2from1, reply_markup=func.page2())
+        elif text == texts.topage1from2:
+            bot.sendMessage(chat_id=update.message.chat_id, text=texts.topage1from2, reply_markup=func.page1())
+        elif text == texts.topage2from3:
+            bot.sendMessage(chat_id=update.message.chat_id, text=texts.topage2from3, reply_markup=func.page2())
+        elif text == texts.topage3from2:
+            bot.sendMessage(chat_id=update.message.chat_id, text=texts.topage3from2, reply_markup=func.page3())
         elif text == texts.group:
             func.change_group(bot, update)
         elif text == texts.menu_liks:
             func.link(bot, update)
-        elif text == texts.menu_ask:
-            func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
         elif text == texts.birth:
@@ -83,13 +94,15 @@ def text(bot, update):
             func.exam(bot, update)
         elif text == texts.duty:
             func.duty(bot, update)
+        elif text == '641/1':
+            func.update_group(bot, update, 1)
+        elif text == '641/2':
+            func.update_group(bot, update, 2)
         else:
             text_list = text.split('.', -1)
-            #print ('LEN:',len(text_list))
             if len(text_list) == 2:
                 if text_list[0].isdecimal() and text_list[1].isdecimal():
                     func.sometext(bot, update, text, 8)
-                    #print("yes")
             else:
                 func.to_note(bot, update)
     else:  # Если пользователь не найден или не активен
@@ -99,6 +112,12 @@ def text(bot, update):
             func.contact(bot, update)
         elif text == 'Донат':
             func.donate(bot, update)
+        elif text == texts.group:
+            func.change_group(bot, update)
+        elif text == '641/1':
+            func.update_group(bot, update, 1)
+        elif text == '641/2':
+            func.update_group(bot, update, 2)
         else:
             func.accsess_denied(bot, update)
         bot.sendMessage(chat_id=update.message.chat_id, text='Ваш Telegram Id: '+str(update.message.chat_id)+ '. Отправьте это сообщение администратору.')
@@ -118,7 +137,7 @@ def button(bot, update):
     elif int(query.data) == 2:
         new_date = data + datetime.timedelta(days=1)
     new_date = str(new_date.day) + "." + str(new_date.month)
-    bot.editMessageText(text=func.sometext(bot, update, new_date, 9),chat_id=query.message.chat_id,message_id=query.message.message_id, reply_markup=func.switch(), parse_mode = telegram.ParseMode.HTML)
+    bot.editMessageText(text=func.sometext(bot, update, new_date, 9), chat_id = query.message.chat_id, message_id = query.message.message_id, reply_markup=func.switch(), parse_mode = telegram.ParseMode.HTML)
 
 
 # Обработка админ команд
@@ -141,15 +160,15 @@ dispatcher.add_handler(MessageHandler(Filters.command, editor))
 # Обработка кнопок
 updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
-# updater.start_webhook(listen = '88.214.236.179',
-#                       port = 8443,
+# #Вебхуки
+# updater.start_webhook(listen = const.ip,
+#                       port = const.port,
 #                       url_path = const.token,
 #                       key = 'private.key',
 #                       cert = 'cert.pem',
-#                       webhook_url = "https://88.214.236.179:8443/"+const.token)
+#                       webhook_url = "https://"+const.ip+":"+str(const.port)+"/"+const.token)
 # updater.idle()
 
+#Не вебхуки
 updater.start_polling()
 updater.idle()
-
-#print(time.strftime('%Y-%m-%d %H:%M:%S'))

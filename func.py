@@ -3,28 +3,28 @@ import mysql.connector
 import const
 import texts
 import datetime
-import telegram
+import telegram ,telegram.ext
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 def switch():
     keyboard = [[InlineKeyboardButton("⬅️     ", callback_data='1'),InlineKeyboardButton("     ➡️", callback_data='2')]]
-
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup
 
-def first_menu():
-
-    custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', texts.alt],
+def page1():
+    custom_keyboard = [['Сегодня', 'Завтра', 'Неделя', texts.topage2from1],
                        ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard, True)
-    return reply_markup
+    return telegram.ReplyKeyboardMarkup(custom_keyboard, True)
 
-def more_menu(text):
-    custom_keyboard = [[texts.back,texts.birth, texts.exam, texts.duty],
-                       [texts.menu_liks, texts.menu_ask, 'Донат',texts.group]]
-    if if_admin(text):
-        custom_keyboard[1].insert(1, texts.admin)
+def page2():
+    custom_keyboard = [[texts.topage1from2, texts.rems_menu, texts.topage3from2],
+                       [texts.exam, texts.duty, texts.fp,texts.birth]]
+    return telegram.ReplyKeyboardMarkup(custom_keyboard, True)
+
+def page3():
+    custom_keyboard = [[texts.topage2from3, 'Донат'],
+                       [texts.menu_liks,texts.group]]
     return telegram.ReplyKeyboardMarkup(custom_keyboard, True)
 
 def to_table(sql):
@@ -67,8 +67,13 @@ def get_next_day_month(how_many_days_increment):
 
 def sometext(bot, update, text, flag):
     sql=''
+    chat_id = ''
+    try:
+        chat_id = str(update.message.chat_id)
+    except AttributeError:
+        chat_id = str(update.callback_query.message.chat_id)
     if flag == 0:
-        sql = "SELECT * FROM `sche` WHERE `data`='" + get_day_month() + "';"
+        sql = "SELECT * FROM "+get_group(bot, update)+" WHERE `data`='" + get_day_month() + "';"
     if flag>0 and flag<7:
         # Получим день недели сегодня
         step=7
@@ -80,14 +85,16 @@ def sometext(bot, update, text, flag):
             step=x-y
         elif (x<y):
             step = 7-(y-x)
-        sql = "SELECT * FROM `sche` WHERE `data`='" + get_next_day_month(step) + "';"
+        sql = "SELECT * FROM "+get_group(bot, update)+" WHERE `data`='" + get_next_day_month(step) + "';"
     if flag == 7:
-        sql = "SELECT * FROM `sche` WHERE `data`='" + get_next_day_month(1) + "';"
+        sql = "SELECT * FROM "+get_group(bot, update)+" WHERE `data`='" + get_next_day_month(1) + "';"
     elif flag == 8 or flag == 9:
-        sql = "SELECT * FROM `sche` WHERE `data`='" + text + "';"
+        sql = "SELECT * FROM "+get_group(bot, update)+" WHERE `data`='" + text + "';"
     cursor = to_table(sql)
+    messag = '<b>' + get_group(bot, update, 1) + '</b>\n'
+    # bot.sendMessage(chat_id=chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=page1())
+    # messag = ''
     if cursor:
-        messag = ''
         for row in cursor:
             id_in_db = row[0]
             data = row[1]
@@ -110,14 +117,15 @@ def sometext(bot, update, text, flag):
                 if (id_in_db>number_of_day):
                     preload = 'Вперед на '+str(id_in_db-number_of_day)+' дн.\n'
                 if (id_in_db<number_of_day):
-                    preload = 'Прошло: ' + str(number_of_day - id_in_db)+' дн.\n'
+                    preload = 'Прошло: '+str(number_of_day - id_in_db)+' дн.\n'
                 messag += 'По вашему запросу:\n' \
                           '{}'.format(preload)
-            on = tw = th = fo = ''
-            sql = ''
+            prof = sql = ''
             if flag == 9:
+                prof = update.callback_query.message.chat_id
                 sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `data`='" + data + "' WHERE `telegram_id`=" + str(update.callback_query.message.chat_id)
             else:
+                prof = update.message.chat_id
                 sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `data`='" + data + "' WHERE `telegram_id`=" + str(update.message.chat_id)
             cnx = mysql.connector.connect(user=const.dbuser,
                                           password=const.dbpwd,
@@ -133,6 +141,7 @@ def sometext(bot, update, text, flag):
                 prof = update.callback_query.message.chat_id
             else:
                 prof = update.message.chat_id
+            on = tw = th = fo = ''
             if if_admin(str(prof)):
                 on = ' /1 or /1_add'
                 tw = ' /2 or /2_add'
@@ -147,25 +156,24 @@ def sometext(bot, update, text, flag):
             if word:
                 messag += '\n<b>А также:</b> \n' + word
             if if_admin(str(prof)):
-                messag+=' '+'/word or /word_add'
-            sql = "SELECT `id`, `memo` FROM `" + texts.table_notes + "` WHERE `data`='" + data + "' AND `telegram` = " + str(
-                update.message.chat_id) + ";"
+                messag+=' '+'\n/word or /word_add'
+            sql = "SELECT `id`, `memo` FROM `" + texts.table_notes + "` WHERE `data`='" + data + "' AND `telegram` = " +chat_id+";"
             cursor = to_table(sql)
             if cursor:
                 messag += '\n<b>Ваши записи</b> для этого дня:\n'
                 j = 1
                 for row in cursor:
                     #messag += '<i>' + str(j) + ') </i> /d' + str(row[0]) + ' ' + row[1] +  '\n'
-                    messag += "<i>{})</i> {} /d{}\n".format(str(j),row[1],row[0])
+                    messag += "<i>{}) </i> {} /d{}\n".format(str(j),row[1],row[0])
                     j += 1
             if flag == 9:
                 return messag
-        bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=switch())
+    bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=switch())
 
 def week(bot,update):
     now_date = datetime.date.today()
     number_of_day = int(now_date.strftime("%j"))
-    sql = "SELECT * FROM `sche` WHERE `id` >= "+str(number_of_day)+" AND `id` < "+str(number_of_day+7)+";"
+    sql = "SELECT * FROM "+get_group(bot, update)+" WHERE `id` >= "+str(number_of_day)+" AND `id` < "+str(number_of_day+7)+";"
     cursor = to_table(sql)
     if cursor:
         sche = ''
@@ -187,11 +195,7 @@ def week(bot,update):
                     sche += '<b>А также:</b> \n' + word + '\n'
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=sche,
-                        parse_mode=telegram.ParseMode.HTML)
-
-def more(bot, update):
-    reply_markup = more_menu(str(update.message.chat_id))
-    bot.sendMessage(chat_id=update.message.chat_id,text=texts.ty, reply_markup=reply_markup) # text=texts.ty,
+                        parse_mode=telegram.ParseMode.HTML, reply_markup=page1())
 
 def proof_of_exist(bot, update):
     cursor = to_table("SELECT `status` FROM `users_for_raspisanie_bot` WHERE `telegram_id`={}".format(str(update.message.chat_id)))
@@ -221,21 +225,78 @@ def proof_of_exist(bot, update):
         cnx.close()
         return 0
 
+def groups():
+    custom_keyboard = [['641/1', '641/2']]
+    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard, True)
+    return reply_markup
+
 def change_group(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.change, reply_markup=more_menu(str(update.message.chat_id)))
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.change, reply_markup=groups())
+
+def update_group(bot, update, group):
+    sql = ''
+    if group ==1:
+        sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `group`=" + "2" + " WHERE `telegram_id`=" + str(update.message.chat_id)
+        bot.sendMessage(chat_id=update.message.chat_id, text='Выбрана группа: 641/1', reply_markup = page1())
+    elif group == 2:
+        sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `group`=" + "1" + " WHERE `telegram_id`=" + str(update.message.chat_id)
+        bot.sendMessage(chat_id=update.message.chat_id, text='Выбрана группа: 641/2', reply_markup = page1())
+    elif group == 9:
+        if group == 1:
+            sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `group`=" + "2" + " WHERE `telegram_id`=" + str(
+                update.callback_query.message.chat_id)
+            bot.sendMessage(chat_id=update.callback_query.message.chat_id, text='Выбрана группа: 641/1',
+                            reply_markup=page1())
+        elif group == 2:
+            sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `group`=" + "1" + " WHERE `telegram_id`=" + str(
+                update.callback_query.message.chat_id)
+            bot.sendMessage(chat_id=update.callback_query.message.chat_id, text='Выбрана группа: 641/2',
+                            reply_markup=page1())
+
+    cnx = mysql.connector.connect(user=const.dbuser,
+                                  password=const.dbpwd,
+                                  host=const.dbhost,
+                                  database=const.dbname)
+    cursor = cnx.cursor()
+    cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+
+def get_group(bot, update, flag=0):
+    cursor = ''
+    try:
+        cursor = to_table("SELECT `group` FROM `users_for_raspisanie_bot` WHERE `telegram_id`={}".format(str(update.message.chat_id)))
+    except AttributeError:
+        cursor = to_table("SELECT `group` FROM `users_for_raspisanie_bot` WHERE `telegram_id`={}".format(str(update.callback_query.message.chat_id)))
+    group = 0
+    if flag == 0:
+        if cursor:
+            for row in cursor:
+                group = row[0]
+                if group == 1:
+                    group = '`sche`'
+                elif group == 2:
+                    group = '`sche2`'
+        return group
+    elif flag == 1:
+        if cursor:
+            for row in cursor:
+                group = row[0]
+                if group == 1:
+                    group = '641/2'
+                elif group == 2:
+                    group = '641/1'
+        return group
 
 def donate(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate, reply_markup=more_menu(str(update.message.chat_id)))
+    bot.sendMessage(chat_id=update.message.chat_id, text = texts.donate, reply_markup=page3())
 
 def link(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link, reply_markup=more_menu(str(update.message.chat_id)))
-
-def contact(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.contact, reply_markup=more_menu(str(update.message.chat_id)))
-
+    bot.sendMessage(chat_id=update.message.chat_id, text=texts.link, reply_markup=page3())
 
 def duty(bot, update):
-    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    sql = "SELECT `data`, `adword` FROM "+get_group(bot, update)+" WHERE `adword` <> '';"
     cursor = to_table(sql)
     if cursor:
         births = '<b>Список нарядов:</b>\n'
@@ -244,10 +305,10 @@ def duty(bot, update):
                 births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=births,
-                        parse_mode=telegram.ParseMode.HTML)
+                        parse_mode=telegram.ParseMode.HTML, reply_markup=page2())
 
 def birth(bot, update):
-    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    sql = "SELECT `data`, `adword` FROM "+get_group(bot, update)+" WHERE `adword` <> '';"
     cursor = to_table(sql)
     if cursor:
         births = '<b>Дни рождения! Поздравляем!</b>\n'
@@ -256,11 +317,11 @@ def birth(bot, update):
                 births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=births,
-                        parse_mode=telegram.ParseMode.HTML)
+                        parse_mode=telegram.ParseMode.HTML, reply_markup=page2())
 
 
 def exam(bot, update):
-    sql = "SELECT `data`, `adword` FROM `sche` WHERE `adword` <> '';"
+    sql = "SELECT `data`, `adword` FROM "+get_group(bot, update)+" WHERE `adword` <> '';"
     cursor = to_table(sql)
     if cursor:
         births = '<b>Зачеты, экзамены, курсовые:</b>\n'
@@ -269,23 +330,10 @@ def exam(bot, update):
                 births += "<b>" + row[0] + "</b> " + "<i>" + row[1] + "</i>\n"
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=births,
-                        parse_mode=telegram.ParseMode.HTML)
+                        parse_mode=telegram.ParseMode.HTML, reply_markup=page2())
 
 def to_note(bot, update):
-    sql = "SELECT `data` FROM `users_for_raspisanie_bot` WHERE `telegram_id` = "+str(update.message.chat_id)+";"
-    cnx = mysql.connector.connect(user=const.dbuser,
-                                  password=const.dbpwd,
-                                  host=const.dbhost,
-                                  database=const.dbname)
-    print (sql)
-    cursor = cnx.cursor()
-    cursor.execute(sql)
-    data = ''
-    if cursor:
-        for row in cursor:
-            data = row[0]
-    cursor.close()
-    cnx.close()
+    data = get_data(update)
     sql = "INSERT INTO `bakirov_db0`.`"+texts.table_notes+"` " \
           "(id, telegram, `data`, `memo`) VALUES " \
           "(NULL, " + str(update.message.chat_id) + ", '"+data+"', '"+update.message.text+"');"
@@ -298,11 +346,39 @@ def to_note(bot, update):
     cnx.commit()
     cr.close()
     cnx.close()
+    text = ''
+    try:
+        text = update.message.text
+    except AttributeError:
+        text = update.callback_query.message.text
+    sometext(bot,update, data, 8)
+
+def get_data(update):
+    id = 0
+    try:
+        id = update.message.chat_id
+    except AttributeError:
+        id = update.callback_query.message.chat_id
+    sql = "SELECT `data` FROM `users_for_raspisanie_bot` WHERE `telegram_id` = " + str(update.message.chat_id) + ";"
+    cnx = mysql.connector.connect(user=const.dbuser,
+                                  password=const.dbpwd,
+                                  host=const.dbhost,
+                                  database=const.dbname)
+    cursor = cnx.cursor()
+    cursor.execute(sql)
+    data = ''
+    if cursor:
+        for row in cursor:
+            data = row[0]
+            return data
+    cursor.close()
+    cnx.close()
+
 
 #Приколюхи для админа
-def admin_help(bot, update):
-    bot.sendMessage(chat_id=update.message.chat_id, text=texts.admin_help, reply_markup=more_menu(str(update.message.chat_id)))
-    father(update)
+# def admin_help(bot, update):
+#     bot.sendMessage(chat_id=update.message.chat_id, text=texts.admin_help, reply_markup=page2())
+#     father(update)
 
 def accsess_denied(bot, update):
     custom_keyboard = [['Контакты','Ссылки','Донат']]
@@ -316,24 +392,28 @@ def if_admin(from_user_telegram_id):
         return False
 
 def get_users_list(bot, update):
+    text = ''
+    sql = "SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=1"
+    cursor = to_table(sql)
+    if cursor:
+        text += '===========\n' \
+                'Одобренные:\n' \
+                '===========\n'
+        k = 1
+        for row in cursor:
+            text += str(k) + ') /del' + str(row[0]) + ' ' + str(row[1]) + ' ' + str(row[2]) + ' ' + str(row[3]) + '\n'
+            k += 1
     sql="SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=0"
     cursor = to_table(sql)
-    text = 'Id)   Telegram id    Name    Last\n'
     if cursor:
-        text+='============================\n' \
-              'Блок: (use "/add id")\n' \
-              '============================\n'
+        text+='=======\n' \
+              'Блок:\n' \
+              '=======\n'
+        k = 1
         for row in cursor:
-            text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
-    sql="SELECT `id`, `telegram_id`, `name`, `last` FROM `users_for_raspisanie_bot` WHERE `status`=1"
-    cursor = to_table(sql)
-    if cursor:
-        text+='============================\n' \
-              'Одобренные: (use "/del id")\n' \
-              '============================\n'
-        for row in cursor:
-            text+= str(row[0]) + ')   ' + str(row[1]) + '    ' + str(row[2]) + '    ' + str(row[3]) + '\n'
-    bot.sendMessage(chat_id=update.message.chat_id, text=text, reply_markup=first_menu())
+            text+= str(k)+') /add'+str(row[0])+' '+str(row[1])+' '+ str(row[2])+' '+str(row[3])+'\n'
+            k += 1
+    bot.sendMessage(chat_id=update.message.chat_id, text=text, reply_markup=page1())
     father(update)
 
 def to_all(bot, update):
@@ -351,47 +431,42 @@ def to_all(bot, update):
                 bot.sendMessage(chat_id=ids,text=text)
 
 
-def add_user(bot, update):
+def add_user(bot, update, id):
     father(update)
     if if_admin(str(update.message.chat_id)):
-        adder = update.message.text
-        adder = adder.split(" ",-1)
-        if len(adder) >= 2:
-            sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `status`= 1 WHERE `id`='" + adder[1]+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
-            cur=to_table("SELECT `telegram_id` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `id`='"+adder[1]+"'")
-            row = ''
-            if cur:
-                for ind in cur:
-                    row = ind[0]
-            if str(row).isdecimal():
-                bot.sendMessage(chat_id=int(row), text='Ваша заявка была одобрена!', reply_markup=first_menu())
+        sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `status`= 1 WHERE `id`='" +id+"'"
+        cnx = mysql.connector.connect(user=const.dbuser,
+                                      password=const.dbpwd,
+                                      host=const.dbhost,
+                                      database=const.dbname)
+        cursor = cnx.cursor()
+        cursor.execute(sql)
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+        cur = to_table("SELECT `telegram_id` FROM `bakirov_db0`.`users_for_raspisanie_bot` WHERE `id`='"+id+"'")
+        row = ''
+        if cur:
+            for ind in cur:
+                row = ind[0]
+        if str(row).isdecimal():
+            bot.sendMessage(chat_id=int(row), text='Ваша заявка была одобрена!', reply_markup=page1())
 
 
-def del_user(bot, update):
+def del_user(bot, update, id):
     father(update)
     if if_admin(str(update.message.chat_id)):
-        adder = update.message.text
-        adder = adder.split(" ",-1)
-        if len(adder) >= 2:
-            sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `status`=0 WHERE `id`='" +str(adder[1])+"'"
-            cnx = mysql.connector.connect(user=const.dbuser,
-                                          password=const.dbpwd,
-                                          host=const.dbhost,
-                                          database=const.dbname)
-            cursor = cnx.cursor()
-            cursor.execute(sql)
-            cnx.commit()
-            cursor.close()
-            cnx.close()
+        sql = "UPDATE `bakirov_db0`.`users_for_raspisanie_bot` SET `status`=0 WHERE `id`='" +id+"'"
+        cnx = mysql.connector.connect(user=const.dbuser,
+                                      password=const.dbpwd,
+                                      host=const.dbhost,
+                                      database=const.dbname)
+        cursor = cnx.cursor()
+        cursor.execute(sql)
+        cnx.commit()
+        cursor.close()
+        cnx.close()
+        get_users_list(bot,update)
 
 def editor(bot,update):
     if if_admin(str(update.message.chat_id)):
@@ -402,7 +477,7 @@ def editor(bot,update):
         commander = commander.split(' ', 1)[0]
         commands = ['/1','/2','/3','/4','/1_add','/2_add','/3_add','/4_add','/word','/word_add']
         commands_add = ['/1_add','/2_add','/3_add','/4_add','/word_add']
-        if  commander in commands:
+        if commander in commands:
             if len(sche)>=2 and sche[0]==commander:
                 sche.remove(commander)
                 ready_sche = ''
@@ -427,12 +502,12 @@ def editor(bot,update):
                 if commander == "/word" or commander == "/word_add":
                     para = "adword"
                 if commander in commands_add:
-                    cur = to_table("SELECT `"+para+"` FROM `bakirov_db0`.`sche` WHERE `data`='" + row + "'")
+                    cur = to_table("SELECT `"+para+"` FROM `bakirov_db0`."+get_group(bot, update)+" WHERE `data`='" + row + "'")
                     if cur:
                         for ind in cur:
                             pre_sche = ind[0]
                         pre_sche+=" "
-                sql = "UPDATE `bakirov_db0`.`sche` SET `"+para+"`='"+pre_sche+ready_sche+"' WHERE `data`='"+row+"'"
+                sql = "UPDATE `bakirov_db0`."+get_group(bot, update)+" SET `"+para+"`='"+pre_sche+ready_sche+"' WHERE `data`='"+row+"'"
                 cnx = mysql.connector.connect(user=const.dbuser,
                                               password=const.dbpwd,
                                               host=const.dbhost,
@@ -446,9 +521,23 @@ def editor(bot,update):
                 father(update, row)
             else:
                 bot.sendMessage(chat_id=update.message.chat_id, text=texts.use)
+        else:
+            if add_or_del(commander) == 1:
+                add_user(bot,update, update.message.text[4:len(update.message.text)])
+            elif add_or_del(commander) == 2:
+                del_user(bot, update, update.message.text[4:len(update.message.text)])
     else:
         accsess_denied(bot,update)
 
+def add_or_del(text):
+    pre = text[1:4]
+    text = text[4:len(text)]
+    if text.isdecimal():
+        if pre == 'add':
+            return 1 # Add
+        elif pre == 'del':
+            return 2 # Delete
+    return 0
 
 def father(update,txt=''):
     f = open('manager.txt', 'a')
@@ -459,3 +548,16 @@ def eye(update):
     f = open('users.txt', 'a')
     f.write(str(time.strftime('%Y-%m-%d %H:%M:%S'))+' '+update.message.from_user.first_name+' '+update.message.from_user.last_name+' '+str(update.message.chat_id)+' '+update.message.text+'\n')
     f.close()
+
+def delnote(bot,update,id,second):
+    sql = "DELETE FROM `bakirov_db0`.`telegram_nodes` WHERE `telegram_nodes`.`id` = {} AND `telegram_nodes`.`telegram` = {}".format(second,id)
+    cnx = mysql.connector.connect(user=const.dbuser,
+                                  password=const.dbpwd,
+                                  host=const.dbhost,
+                                  database=const.dbname)
+    cursor = cnx.cursor()
+    cursor.execute(sql)
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+    sometext(bot,update,get_data(update),8)
