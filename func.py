@@ -143,11 +143,21 @@ def sometext(bot, update, text, flag):
                     '<i>1) </i> {}{}\n' \
                     '<i>2) </i> {}{}\n' \
                     '<i>3) </i> {}{}\n' \
-                    '<i>4) </i> {}{}\n'.format(dayofweek(id_in_db),data,id_in_db,first,on,second,tw,third,th,fourth,fo)
+                    '<i>4) </i> {}{}'.format(dayofweek(id_in_db),data,id_in_db,first,on,second,tw,third,th,fourth,fo)
             if word:
-                messag += '<b>А также:</b> \n' + word
+                messag += '\n<b>А также:</b> \n' + word
             if if_admin(str(prof)):
                 messag+=' '+'/word or /word_add'
+            sql = "SELECT `id`, `memo` FROM `" + texts.table_notes + "` WHERE `data`='" + data + "' AND `telegram` = " + str(
+                update.message.chat_id) + ";"
+            cursor = to_table(sql)
+            if cursor:
+                messag += '\n<b>Ваши записи</b> для этого дня:\n'
+                j = 1
+                for row in cursor:
+                    #messag += '<i>' + str(j) + ') </i> /d' + str(row[0]) + ' ' + row[1] +  '\n'
+                    messag += "<i>{})</i> {} /d{}\n".format(str(j),row[1],row[0])
+                    j += 1
             if flag == 9:
                 return messag
         bot.sendMessage(chat_id=update.message.chat_id,text = messag, parse_mode = telegram.ParseMode.HTML, reply_markup=switch())
@@ -260,6 +270,34 @@ def exam(bot, update):
         bot.sendMessage(chat_id=update.message.chat_id,
                         text=births,
                         parse_mode=telegram.ParseMode.HTML)
+
+def to_note(bot, update):
+    sql = "SELECT `data` FROM `users_for_raspisanie_bot` WHERE `telegram_id` = "+str(update.message.chat_id)+";"
+    cnx = mysql.connector.connect(user=const.dbuser,
+                                  password=const.dbpwd,
+                                  host=const.dbhost,
+                                  database=const.dbname)
+    print (sql)
+    cursor = cnx.cursor()
+    cursor.execute(sql)
+    data = ''
+    if cursor:
+        for row in cursor:
+            data = row[0]
+    cursor.close()
+    cnx.close()
+    sql = "INSERT INTO `bakirov_db0`.`"+texts.table_notes+"` " \
+          "(id, telegram, `data`, `memo`) VALUES " \
+          "(NULL, " + str(update.message.chat_id) + ", '"+data+"', '"+update.message.text+"');"
+    cnx = mysql.connector.connect(user=const.dbuser,
+                                  password=const.dbpwd,
+                                  host=const.dbhost,
+                                  database=const.dbname)
+    cr = cnx.cursor()
+    cr.execute(sql)
+    cnx.commit()
+    cr.close()
+    cnx.close()
 
 #Приколюхи для админа
 def admin_help(bot, update):

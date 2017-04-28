@@ -83,8 +83,15 @@ def text(bot, update):
             func.exam(bot, update)
         elif text == texts.duty:
             func.duty(bot, update)
-        else:#тут проверка
-            func.sometext(bot, update, text, 8)
+        else:
+            text_list = text.split('.', -1)
+            #print ('LEN:',len(text_list))
+            if len(text_list) == 2:
+                if text_list[0].isdecimal() and text_list[1].isdecimal():
+                    func.sometext(bot, update, text, 8)
+                    #print("yes")
+            else:
+                func.to_note(bot, update)
     else:  # Если пользователь не найден или не активен
         if text == texts.menu_liks:
             func.link(bot, update)
@@ -95,6 +102,7 @@ def text(bot, update):
         else:
             func.accsess_denied(bot, update)
         bot.sendMessage(chat_id=update.message.chat_id, text='Ваш Telegram Id: '+str(update.message.chat_id)+ '. Отправьте это сообщение администратору.')
+
 
 def button(bot, update):
     query = update.callback_query
@@ -133,15 +141,15 @@ dispatcher.add_handler(MessageHandler(Filters.command, editor))
 # Обработка кнопок
 updater.dispatcher.add_handler(CallbackQueryHandler(button))
 
-updater.start_webhook(listen = '88.214.236.179',
-                      port = 8443,
-                      url_path = const.token,
-                      key = 'private.key',
-                      cert = 'cert.pem',
-                      webhook_url = "https://88.214.236.179:8443/"+const.token)
-updater.idle()
-
-# updater.start_polling()
+# updater.start_webhook(listen = '88.214.236.179',
+#                       port = 8443,
+#                       url_path = const.token,
+#                       key = 'private.key',
+#                       cert = 'cert.pem',
+#                       webhook_url = "https://88.214.236.179:8443/"+const.token)
 # updater.idle()
+
+updater.start_polling()
+updater.idle()
 
 #print(time.strftime('%Y-%m-%d %H:%M:%S'))
